@@ -1,7 +1,6 @@
 /**
- * 
- * @author chrisd98, jdins22
- * @version 05.09
+ * @version 12.05
+ * @author ryank99
  * @param <T> is a comparator
  * @param <K> is a comparator
  */
@@ -17,24 +16,11 @@ public interface HashTable<T extends Comparable<T>, K> {
     public int insert(T id, K handle);
 
 
-    /**
-     * Precondition: the sequenceID exists in the hash.
-     * 
-     * @param sequenceID
-     *            is the sequenceID to remove
-     * @param amountToSkip is the amt to skip
-     * @return the remove
-     */
-    public K remove(T sequenceID, Integer amountToSkip);
+    public K remove(T id);
 
 
-    /**
-     * 
-     * @param sequenceID
-     *            is the sequenceID to look for
-     * @return the sfold value
-     */
-    public int hash(T sequenceID);
+
+    public int hash(T id);
 
 
     /**
@@ -43,12 +29,12 @@ public interface HashTable<T extends Comparable<T>, K> {
      * @param amountToSkip amt to skip
      * @return the search
      */
-    public K search(T id, Integer amountToSkip);
+    public K search(T id);
     
     /**
      * 
-     * @return the print
+     * @return the arr rep
      */
-    public K[] print();
+    public K[] toArray();
 
 }

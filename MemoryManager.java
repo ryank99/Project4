@@ -1,4 +1,3 @@
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -95,6 +94,7 @@ public class MemoryManager {
     }
     
     public Record insertEssay(String id, String essay) throws Exception {
+        essay += "\n";
         Record found = searchHash(id);
         if(found == null) {
             System.out.println("error");
@@ -285,7 +285,7 @@ public class MemoryManager {
                 //if not empty, add essatspace to freeblocks
                 addToFree(essayNode);
             }
-            Record check = hashTable.remove(id, 0); // check
+            Record check = hashTable.remove(id); // check
             if (check == null) {
                 System.out.println("remove error");
             }
@@ -326,7 +326,7 @@ public class MemoryManager {
     public Record searchHash(String id) throws IOException {
         int counter = 0;
         boolean isnameFound = false;
-        Record hash = hashTable.search(id, 0); // check
+        Record hash = hashTable.search(id); // check
         if(hash == null) {
             return null;
         }
@@ -422,7 +422,7 @@ public class MemoryManager {
      * @throws IOException
      */
     public void print() throws IOException {
-        Record[] table = hashTable.print();
+        Record[] table = hashTable.toArray();
         System.out.println("Students in the database:");
         for (int i = 0; i < table.length; i++) {
             if (table[i] == null || table[i].getTombstone()) {

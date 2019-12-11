@@ -18,11 +18,18 @@ public class Handle {
         this.length = strLength;
     }
     
+    /**
+     * default constructor
+     */
     public Handle() {
         this.offset = -1;
         this.length = -1;
     }
     
+    /**
+     * 
+     * @return whether handle empty
+     */
     public boolean empty() {
         return this.length == -1;
     }
@@ -48,20 +55,18 @@ public class Handle {
 
     /**
      * 
-     * @param positionToSet
-     *            new position of string
+     * @param pos to set
      */
-    public void setPosition(int positionToSet) {
-        this.offset = positionToSet;
+    public void setPosition(int pos) {
+        this.offset = pos;
     }
 
 
     /**
      * 
-     * @param lengthToSet
-     *            new length of string
+     * @param length to set
      */
-    public void setLength(int lengthToSet) {
-        this.length = lengthToSet;
+    public void setLength(int length) {
+        this.length = length;
     }
 }

@@ -70,7 +70,7 @@ public class Parser {
                     String essay = memory.readFromMem(temp.getEssayHandle());
                     System.out.println(strangs[1] + " " + name + ":");
                     if (essay.length() > 0) {
-                        System.out.println(essay);
+                        System.out.print(essay);
                     }
                 }
             }
@@ -83,6 +83,7 @@ public class Parser {
                     if (currRecord.hasEssayHandle()) {
                         memory.clear(currRecord.getPid());
                     }
+                    
                     String temp = scanner.nextLine();
                     String essay = "";
                     while(!temp.equals("essay off")) {
@@ -90,6 +91,7 @@ public class Parser {
                         temp = scanner.nextLine();
                     }
                     memory.insertEssay(currRecord.getPid(), essay);
+                    
                 }
                 else {
                     System.out.println("essay commands can only follow "
