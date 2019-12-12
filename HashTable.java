@@ -16,17 +16,25 @@ public interface HashTable<T extends Comparable<T>, K> {
     public int insert(T id, K handle);
 
 
+    /**
+     * 
+     * @param id to remove
+     * @return removed record
+     */
     public K remove(T id);
 
 
-
+    /**
+     * 
+     * @param id to hash
+     * @return hashvalue
+     */
     public int hash(T id);
 
 
     /**
      * 
      * @param id is the id 
-     * @param amountToSkip amt to skip
      * @return the search
      */
     public K search(T id);

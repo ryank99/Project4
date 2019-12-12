@@ -1,14 +1,21 @@
-import java.io.IOException;
+/**
+ * 
+ * @author Ryan Kirkpatrick
+ * @version 12.12
+ */
+public class StudentManagerTest extends student.TestCase {
 
-public class StudentManagerTest extends student.TestCase{
 
-    public void setUp() throws IOException {
-        MemoryManager test = new MemoryManager("output.data", 128);
-    }
     
-    
-    public void testMain() throws Exception{
-        /**
+    /**
+     * tests main
+     * @throws Exception
+     */
+    public void testMain() throws Exception {
+        String[] args = {"sampleinput.txt", "hash.data", "64", "output.data"};
+        StudentManager.main(args);
+        
+        
         MemoryManager test = new MemoryManager("output.data", 128);
         test.insertName("906088299", "Ryan Kirkpatrick");
         test.insertName("983927289", "Bryan K");
@@ -27,6 +34,8 @@ public class StudentManagerTest extends student.TestCase{
         test.print();
         System.out.println(test.remove("906088299"));
         test.insertName("906088299", "my name");
-        test.print();*/
-   }
+        test.print();
+        Handle test1 = new Handle();
+        assertTrue(test1.empty());
+    }
 }

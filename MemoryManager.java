@@ -25,9 +25,15 @@ public class MemoryManager {
         this.hashTable = new HashFunction(hashSize);
     }
 
+    /**
+     * 
+     * @return mem file as string
+     * @throws IOException
+     */
     public String getFileDump() throws IOException {
         return readFromMem(new Handle(0, (int)memoryFile.length()));
     }
+    
     /**
      * A constructor to test certain functions
      * 
@@ -43,22 +49,25 @@ public class MemoryManager {
      * 
      * @param id is the id
      * @param name is the name
-     * @param length is the length
-     * @return  the hash object
+     * @return  error code 0, already inserted. error code 1 overflow
      * @throws IOException
      */
-    public Record insertName(String id, String name)
+    public int insertName(String id, String name)
         throws IOException {
         Record hashObject = searchHash(id);
         // returns null if seqeunce already exists. Or overflow.
         if (hashObject != null && hashObject.getPid().equals(id)) {
-            return null;
+            return 0;
         }
+        if (hashTable.isFull(id)) {
+            return 1;
+        }
+        
         byte[] data = name.getBytes();
         
         //add to end
         Handle nameHandle;
-        if(head == null) {
+        if (head == null) {
             nameHandle = new Handle(memoryFile.length(), data.length);
             memoryFile.seek(memoryFile.length());
             memoryFile.write(data);
@@ -69,14 +78,14 @@ public class MemoryManager {
                 nameHandle = new Handle(freeID.getOffset(), data.length);
                 memoryFile.seek(freeID.getOffset());
                 memoryFile.write(data);
-                if(freeID.getLength() == data.length) {
+                if (freeID.getLength() == data.length) {
                     //perfect fit, remove node
                     removeNode(freeID);
                 }
                 else {
                   //update node bounds
-                    freeID.setLength(freeID.getLength()-data.length);
-                    freeID.setOffset(freeID.getOffset()+data.length); 
+                    freeID.setLength(freeID.getLength() - data.length);
+                    freeID.setOffset(freeID.getOffset() + data.length); 
                 }
             }
             else {
@@ -89,20 +98,26 @@ public class MemoryManager {
         //write to file
         //update free nodes
         Record hashObjectNew = new Record(id, nameHandle);
-        int spot = hashTable.insert(id, hashObjectNew); // insert to the hash table
-        return hashObjectNew;
+        hashTable.insert(id, hashObjectNew); // insert
+        return -1;
     }
     
+    /**
+     * 
+     * @param id to insert to
+     * @param essay to insert
+     * @return new record inserted to
+     * @throws Exception
+     */
     public Record insertEssay(String id, String essay) throws Exception {
-        essay += "\n";
         Record found = searchHash(id);
-        if(found == null) {
+        if (found == null) {
             System.out.println("error");
         }
         byte[] data = essay.getBytes();
-        
+        data = essay.getBytes();
         Handle essayHandle;
-        if(head == null) {
+        if (head == null) {
             essayHandle = new Handle(memoryFile.length(), data.length);
             memoryFile.seek(memoryFile.length());
             memoryFile.write(data);
@@ -113,14 +128,14 @@ public class MemoryManager {
                 essayHandle = new Handle(freeID.getOffset(), data.length);
                 memoryFile.seek(freeID.getOffset());
                 memoryFile.write(data);
-                if(freeID.getLength() == data.length) {
+                if (freeID.getLength() == data.length) {
                     //perfect fit, remove node
                     removeNode(freeID);
                 }
                 else {
                   //update node bounds
-                    freeID.setLength(freeID.getLength()-data.length);
-                    freeID.setOffset(freeID.getOffset()+data.length); 
+                    freeID.setLength(freeID.getLength() - data.length);
+                    freeID.setOffset(freeID.getOffset() + data.length); 
                 }
             }
             else {
@@ -132,19 +147,43 @@ public class MemoryManager {
         found.setEssayHandle(essayHandle);
         return found;
     }
-
+    
+    /**
+     * 
+     * @param id to update
+     * @param name updated
+     * @return the updated record
+     * @throws IOException
+     */
     public Record update(String id, String name) throws IOException {
         Record found = searchHash(id);
         if (found == null) {
-           System.out.println(name + " inserted.");
-           return insertName(id, name);
+            int errorCode = insertName(id, name);
+            if (errorCode == 0) {
+                System.out.println(name + " insertion failed since the pid "
+                    + id + "belongs to another student");
+                return null;
+            }
+            else if (errorCode == 1) {
+                System.out.println(name + " insertion failed. "
+                    + "Attempt to insert in a full bucket");
+                return null;
+            }
+            else {
+                System.out.println(name + " inserted.");
+            }
+            return searchHash(id);
         }
         else {
             System.out.println("Student " + id + " updated to " + name);
+            String oldName = readFromMem(found.getNameHandle());
+            if (oldName.equals(name)) {
+                return found;
+            }
             Node nameNode = new Node(found.getNameHandle().getLength(),
                 (int)found.getNameHandle().getPosition());
             addToFree(nameNode);
-            
+            clean();
             Handle nameHandle = new Handle();
             byte[] data = name.getBytes();
 
@@ -153,14 +192,14 @@ public class MemoryManager {
                 nameHandle = new Handle(freeID.getOffset(), data.length);
                 memoryFile.seek(freeID.getOffset());
                 memoryFile.write(data);
-                if(freeID.getLength() == data.length) {
+                if (freeID.getLength() == data.length) {
                     //perfect fit, remove node
                     removeNode(freeID);
                 }
                 else {
                     //update node bounds
-                    freeID.setLength(freeID.getLength()-data.length);
-                    freeID.setOffset(freeID.getOffset()+data.length); 
+                    freeID.setLength(freeID.getLength() - data.length);
+                    freeID.setOffset(freeID.getOffset() + data.length); 
                 }
             }
             else {
@@ -172,69 +211,24 @@ public class MemoryManager {
             return found;
         }
     }
-
+    
     /**
      * 
-     * @param node is the node
-     * @return the prev node
+     * @param n to remove
      */
-    private Node findPrev(Node node) {
-        
-        Node temp = head;
-        while (temp != null) {
-            if (temp.getNext() == node) {
-                return temp;
-            }
-            temp = temp.getNext();
-        }
-        return null;
-    }
-    
     private void removeNode(Node n) {
         int offset = n.getOffset();
         Node temp = head;
-        if(temp.getOffset() == offset) {
+        if (temp.getOffset() == offset) {
             head = head.getNext();
         }
         while (temp.getNext() != null) {
-            if(temp.getNext().getOffset() == offset) {
+            if (temp.getNext().getOffset() == offset) {
                 temp.setNext(temp.getNext().getNext());
                 return;
             }
             temp = temp.getNext();
         }
-    }
-
-    /**
-     * 
-     * @return the last node
-     */
-    private Node getLast() {
-        if (head == null) {
-            return null;
-        }
-        Node temp = head;
-        while (temp.getNext() != null) {
-            temp = temp.getNext();
-        }
-        return temp;
-    }
-
-
-    /**
-     * 
-     */
-    private void setLast() {
-        if (head.getNext() == null) {
-            head = null;
-            return;
-        }
-        Node temp = head;
-        while (temp.getNext().getNext() != null) {
-            temp = temp.getNext();
-        }
-        temp.setNext(null);
-
     }
 
 
@@ -264,26 +258,28 @@ public class MemoryManager {
         
         String ret = "";
         Record hash = searchHash(id);
-        String name;
         if (hash == null) {
-            ret = id + " is not found in database."; 
+            ret = id + " is not found in the database."; 
         }
         else {
             memoryFile.seek(hash.getNameHandle().getPosition());
             byte[] data = new byte[hash.getNameHandle().getLength()];
             memoryFile.read(data);
             String removed = new String(data);
-            ret = id + " with full name " + removed + " is removed from the database.";
+            ret = id + " with full name " + removed + 
+                " is removed from the database.";
             
             Node nameNode = new Node(hash.getNameHandle().getLength(),
                 (int)hash.getNameHandle().getPosition());
             //add namespace to freeblocks
             addToFree(nameNode);
-            if(hash.hasEssayHandle()) {
+            clean();
+            if (hash.hasEssayHandle()) {
                 Node essayNode = new Node(hash.getEssayHandle().getLength(),
                     (int)hash.getEssayHandle().getPosition());
                 //if not empty, add essatspace to freeblocks
                 addToFree(essayNode);
+                clean();
             }
             Record check = hashTable.remove(id); // check
             if (check == null) {
@@ -293,23 +289,32 @@ public class MemoryManager {
         return ret;
     }
 
+    
+    /**
+     * 
+     * @param id to clear
+     * @return ret message
+     * @throws IOException
+     */
     public String clear(String id) throws IOException {
         String ret = "";
         Record hash = searchHash(id);
         if (hash == null) {
-            ret = id + " is not found in the databse.";
+            ret = id + " is not found in the database.";
         }
         else {
             memoryFile.seek(hash.getNameHandle().getPosition());
             byte[] data = new byte[hash.getNameHandle().getLength()];
             memoryFile.read(data);
             String removed = new String(data);
-            ret = "record with pid " + id + " with full name " + removed + " is cleared.";
-            if(hash.hasEssayHandle()) {
+            ret = "record with pid " + id + " with full name "
+                + removed + " is cleared.";
+            if (hash.hasEssayHandle()) {
                 Node essayNode = new Node(hash.getEssayHandle().getLength(),
                     (int)hash.getEssayHandle().getPosition());
                 //if not empty, add essatspace to freeblocks
                 addToFree(essayNode);
+                clean();
             }
             Handle clearedEssayHandle = new Handle();
             hash.setEssayHandle(clearedEssayHandle);
@@ -319,15 +324,13 @@ public class MemoryManager {
 
     /**
      * 
-     * @param str is the string
-     * @return the obj
-     * @throws IOException can throw
+     * @param id to search
+     * @return found record, null
+     * @throws IOException
      */
     public Record searchHash(String id) throws IOException {
-        int counter = 0;
-        boolean isnameFound = false;
         Record hash = hashTable.search(id); // check
-        if(hash == null) {
+        if (hash == null) {
             return null;
         }
         else {
@@ -336,24 +339,39 @@ public class MemoryManager {
             byte[] data = new byte[len]; 
             memoryFile.seek(pos);
             memoryFile.read(data);
-            String name = new String(data);
         }
-        if(!id.equals(hash.getPid())) {
+        if (!id.equals(hash.getPid())) {
             System.out.println(id + " " + hash.getPid());
         }
         return hash;
     }
     
     /**
+     * removes uneeded free blocks at end of file
+     * @throws IOException
+     */
+    public void clean() throws IOException {
+        Node temp = head;
+        while (temp.getNext() != null) {
+            temp = temp.getNext();
+        }
+        if (temp.getLength() + temp.getOffset() == memoryFile.length()) {
+            removeNode(temp);
+            memoryFile.setLength(memoryFile.length() - temp.getLength());
+        }
+    }
+    
+    /**
      * 
      * @param node to add to free block list
+     * @throws IOException 
      */
-    private void addToFree(Node node) {
+    private void addToFree(Node node) throws IOException {
         if (head == null) {
             head = node;
             return;
         }
-        if (head.getOffset() > node.getOffset()) {
+        if (head.left() > node.left()) {
             if (node.getLength() + node.getOffset() == head.getOffset()) {
                 head.setOffset(node.getOffset());
                 head.setLength(head.getLength() + node.getLength());
@@ -367,23 +385,23 @@ public class MemoryManager {
         Node temp = head;
         while (temp != null) {
             if (temp.getNext() == null) {
-                if (temp.getOffset() + temp.getLength() == node.getOffset()) {
+                if (temp.right() == node.left()) {
                     temp.setLength(temp.getLength() + node.getLength());
                     return;
                 }
                 temp.setNext(node);
                 return;
             }
-            if (temp.getNext().getOffset() > node.getOffset()) {
-                if (node.getLength() + node.getOffset() == temp.getNext()
-                    .getOffset()) {
+            if (temp.getNext().left() > node.left()) {
+                
+                if (node.right() == temp.getNext().left()) {
                     temp.getNext().setOffset(node.getOffset());
-                    temp.getNext().setLength(temp.getNext().getLength() + node
-                        .getLength());
-                    if (temp.getOffset() + temp.getLength() == temp.getNext()
-                        .getOffset()) {
-                        temp.setLength(temp.getLength() + temp.getNext()
-                            .getLength());
+                    temp.getNext().setLength(
+                        temp.getNext().getLength() + node.getLength());
+                    
+                    if (temp.right() == temp.getNext().getOffset()) {
+                        temp.setLength(temp.getLength() +
+                            temp.getNext().getLength());
                         Node temp2 = temp.getNext();
                         temp.setNext(null);
                         temp.setNext(temp2.getNext());
@@ -392,8 +410,7 @@ public class MemoryManager {
                     }
                     return;
                 }
-                else if (temp.getLength() + temp.getOffset() == node
-                    .getOffset()) {
+                else if (temp.right() == node.left()) {
                     temp.setLength(temp.getLength() + node.getLength());
                     return;
                 }
@@ -406,6 +423,10 @@ public class MemoryManager {
             temp = temp.getNext();
         }
     }
+        
+        
+    
+
 
 
     /**
@@ -428,12 +449,11 @@ public class MemoryManager {
             if (table[i] == null || table[i].getTombstone()) {
                 continue;
             }
-            Handle testing = table[i].getNameHandle();
             String name = readFromMem(table[i].getNameHandle());
             System.out.println(name + " at slot " + i);
         }
         if (head == null) {
-            System.out.println("Free Block List: none");
+            System.out.println("Free Block List:");
         }
         else {
             System.out.println("Free Block List:");
@@ -449,8 +469,14 @@ public class MemoryManager {
         }
     }
 
+    /**
+     * 
+     * @param h handle
+     * @return string rep
+     * @throws IOException
+     */
     public String readFromMem(Handle h) throws IOException {
-        if(h.empty()) {
+        if (h.empty()) {
             return "";
         }
         int len = h.getLength();

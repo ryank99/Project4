@@ -26,10 +26,10 @@ public class HashFunction implements HashTable<String, Record> {
 
     /**
      * 
-     * @param s
-     *            is the string to be hashed
-     * @param m
-     *            hash table size
+     * @param s is the string to be hashed
+     *            
+     * @param m hash table size
+
      * @return the hash value
      */
     private long sfold(String s, int m) {
@@ -59,15 +59,29 @@ public class HashFunction implements HashTable<String, Record> {
 
 
     /**
-     * 
-     * @param id
-     * @return whether or not the id is in the hash table
+     * @param id to hash
+     * @return hashfunctionoutput
      */
     public int hash(String id) {
         return (int)sfold(id, hashes.length);
 
     }
 
+    /**
+     * 
+     * @param id to check for
+     * @return whether bucket is full
+     */
+    public boolean isFull(String id) {
+        int pos = hash(id);
+        int bucketStart = pos - (pos % 32);
+        for (int i = bucketStart; i < bucketStart + 32; i++) {
+            if (hashes[i] == null || hashes[i].getTombstone()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * @param id is the id
@@ -76,31 +90,31 @@ public class HashFunction implements HashTable<String, Record> {
      */
     public int insert(String id, Record handle) {
         int hash = (int)sfold(id, hashes.length);
-        if(hashes[hash] == null ) {
+        if (hashes[hash] == null ) {
             hashes[hash] = handle;
             return hash;
         }
-        if(hashes[hash].getTombstone()) {
-            hashes[hash].setTombstone(false);
+        if (hashes[hash].getTombstone()) {
+            //hashes[hash].setTombstone(false);
             hashes[hash] = handle;
             return hash;
         }
         
         int x = hash + 1;
-        while(x != hash) {
-            if(x % 32 == 0) {
-                x-=32;
+        while (x != hash) {
+            if (x % 32 == 0) {
+                x -= 32;
             }
             Record hashObj = hashes[x];
-            if(hashObj == null) {
+            if (hashObj == null) {
                 hashes[x] = handle;
                 return x;
             }
-            if(hashObj.getTombstone()) {
+            if (hashObj.getTombstone()) {
                 hashes[x] = handle;
                 return x;
             }
-            if(hashObj.getPid().equals(id) && !hashObj.getTombstone()) {
+            if (hashObj.getPid().equals(id) && !hashObj.getTombstone()) {
                 System.out.println("error, already inserted");
                 return -1;
             }
@@ -115,30 +129,32 @@ public class HashFunction implements HashTable<String, Record> {
     /**
      * 
      * @param id to remove
-     * @param amountToSkip is the amt to skip
      * @return the hash
      */
     public Record remove(String id) {
         int hash = (int)sfold(id, hashes.length);
-        if(hashes[hash] == null) {
+        if (hashes[hash] == null) {
             return null;
         }
-        if(hashes[hash].getPid().equals(id)) {
-            hashes[hash].setTombstone(true);
-            return hashes[hash];
+        if (hashes[hash].getPid().equals(id)) {
+            //hashes[hash].setTombstone(true);
+            
+            Record ret = hashes[hash];
+            hashes[hash] = null;
+            return ret;
         }
         
         int x = hash + 1;
-        while(x != hash) {
+        while (x != hash) {
             
-            if(x % 32 == 0) {
-                x-=32;
+            if (x % 32 == 0) {
+                x -= 32;
             }
             
-            if(hashes[x] == null) {
+            if (hashes[x] == null) {
                 return null;
             }
-            if(hashes[x].getPid().equals(id)) {
+            if (hashes[x].getPid().equals(id)) {
                 hashes[hash].setTombstone(true);
                 return hashes[x];
             }
@@ -152,28 +168,28 @@ public class HashFunction implements HashTable<String, Record> {
     /**
      * 
      * @param id is the id
-     * @param amountToSkip is the amt to skip
      * @return the hash
      */
     public Record search(String id) {
         int hash = (int)sfold(id, hashes.length);
-        if(hashes[hash] != null && hashes[hash].getPid().equals(id) && !hashes[hash].getTombstone()) {
+        if (hashes[hash] != null && hashes[hash].getPid().equals(id)
+            && !hashes[hash].getTombstone()) {
             return hashes[hash];
         }
         int x = hash + 1;
-        while(x != hash) {
+        while (x != hash) {
             
-            if(x % 32 == 0) {
-                x-=32;
+            if (x % 32 == 0) {
+                x -= 32;
             }
             Record hashObj = hashes[x];
-            if(hashObj == null) {
+            if (hashObj == null) {
                 return null;
             }
-            if(hashObj.getTombstone()) {
+            if (hashObj.getTombstone()) {
                 return null;
             }
-            if(hashObj.getPid().equals(id) && !hashObj.getTombstone()) {
+            if (hashObj.getPid().equals(id) && !hashObj.getTombstone()) {
                 return hashObj;
             }
             x++;

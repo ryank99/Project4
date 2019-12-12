@@ -1,7 +1,6 @@
 /**
- * 
- * @author chrisd98, jdins22
- * @version 05.09
+ * @author Ryan Kirkpatrick
+ * @version 12.12
  */
 public class Node {
     
@@ -28,6 +27,21 @@ public class Node {
         return this.next;
     }
     
+    /**
+     * 
+     * @return left
+     */
+    public int left() {
+        return offset;
+    }
+    
+    /**
+     * 
+     * @return right
+     */
+    public int right() {
+        return offset + length;
+    }
     /**
      * 
      * @return offset
